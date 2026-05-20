@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>辩论模式 - PolyLogos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .markdown-body { color: #e5e7eb; line-height: 1.6; }
+        .markdown-body p { margin-bottom: 0.5em; }
+        .markdown-body code { background: #374151; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+        .markdown-body pre { background: #1f2937; padding: 12px; border-radius: 8px; overflow-x: auto; }
+        .markdown-body blockquote { border-left: 4px solid #3b82f6; padding-left: 1em; color: #9ca3af; margin: 0.5em 0; }
+        .typing-dots span { animation: typing 1.4s infinite ease-in-out both; }
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-in { animation: slideIn 0.3s ease forwards; }
+        .bubble-pro { background: #2563eb; }
+        .bubble-con { background: #dc2626; }
+        .thinking { opacity: 0.7; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <header class="bg-gray-800 border-b border-gray-700 py-3 px-4">
+        <div class="max-w-5xl mx-auto">
+            <a href="index.html" class="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 hover:underline transition-colors no-underline">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                返回对比模式
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto p-4">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">辩论模式</h1>
+            <p class="text-gray-400 text-sm mt-1">多模型 AI 辩论对战</p>
+        </div>
+
+        <section class="bg-gray-800 rounded-lg p-4 mb-4">
+            <h2 class="text-lg font-semibold text-gray-100 mb-4">辩论设置</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm text-gray-300 mb-2">正方模型</label>
+                    <select id="debate-pro-model" class="w-full bg-gray-700 border border-gray-600 text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">选择模型</option>
+                    </select>
+                    <p id="pro-key-status" class="text-xs mt-1 text-gray-500"></p>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-300 mb-2">反方模型</label>
+                    <select id="debate-con-model" class="w-full bg-gray-700 border border-gray-600 text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                        <option value="">选择模型</option>
+                    </select>
+                    <p id="con-key-status" class="text-xs mt-1 text-gray-500"></p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm text-gray-300 mb-2">辩题</label>
+                <input type="text" id="debate-topic" placeholder="例如：人工智能是否会取代人类工作" class="w-full bg-gray-700 border border-gray-600 text-gray-100 rounded-lg px-3 py-2 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <select id="debate-rounds" class="bg-gray-700 border border-gray-600 text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="2">2 轮</option>
+                    <option value="3" selected>3 轮</option>
+                    <option value="4">4 轮</option>
+                </select>
+                <button id="debate-start-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    开始辩论
+                </button>
+                <button id="debate-stop-btn" class="hidden bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">停止</button>
+                <button id="debate-reset-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">重置</button>
+            </div>
+
+            <div id="debate-status" class="hidden mt-4 pt-4 border-t border-gray-700">
+                <div class="flex items-center gap-2 text-sm">
+                    <span id="status-icon" class="text-lg"></span>
+                    <span id="status-text" class="text-gray-300"></span>
+                </div>
+                <div id="progress-container" class="hidden mt-2">
+                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>辩论进度</span>
+                        <span id="progress-text">0/0</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2">
+                        <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div id="error-display" class="hidden bg-red-900/30 border border-red-500/50 rounded-lg p-4 mb-4 slide-in">
+            <div class="flex items-start gap-3">
+                <span class="text-xl">⚠️</span>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-red-400 mb-1">错误</h4>
+                    <p id="error-message" class="text-red-300 text-sm"></p>
+                </div>
+                <button onclick="hideError()" class="text-red-400 hover:text-red-300">✕</button>
+            </div>
+        </div>
+
+        <section id="debate-container" class="bg-gray-800 rounded-lg p-4 min-h-[400px] max-h-[600px] overflow-y-auto mb-4">
+            <div id="debate-transcript" class="space-y-3">
+                <div class="text-center text-gray-500 py-12">
+                    <svg class="w-16 h-16 mx-auto mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    <p>点击「开始辩论」后，双方发言将显示在这里</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="debate-verdict" class="hidden bg-gradient-to-r from-yellow-900/30 to-purple-900/30 border border-yellow-600/30 rounded-lg p-4 mb-4">
+            <div class="flex items-center gap-2 mb-3">
+                <span class="text-2xl">🏆</span>
+                <h3 class="text-lg font-semibold text-yellow-400">裁判总结</h3>
+                <span id="verdict-judge" class="text-sm text-gray-400"></span>
+            </div>
+            <div id="verdict-content" class="text-gray-200 whitespace-pre-wrap markdown-body"></div>
+        </section>
+    </main>
+
+    <script>
+        // ========== API Configuration - 支持所有模型 ==========
+        const API_CONFIGS = {
+            deepseek: {
+                name: 'DeepSeek',
+                url: 'https://api.deepseek.com/v1/chat/completions',
+                model: 'deepseek-chat',
+                format: 'openai'
+            },
+            qwen: {
+                name: '通义千问',
+                url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+                model: 'qwen-plus',
+                format: 'openai'
+            },
+            glm: {
+                name: '智谱 GLM',
+                url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                model: 'glm-4-flash',
+                format: 'openai'
+            },
+            kimi: {
+                name: 'Kimi',
+                url: 'https://api.moonshot.cn/v1/chat/completions',
+                model: 'moonshot-v1-8k',
+                format: 'openai'
+            },
+            openai: {
+                name: 'ChatGPT',
+                url: 'https://api.openai.com/v1/chat/completions',
+                model: 'gpt-4.1-mini',
+                format: 'openai'
+            },
+            gemini: {
+                name: 'Gemini',
+                url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+                model: 'gemini-1.5-flash',
+                format: 'gemini'
+            }
+        };
+
+        // ========== State ==========
+        let isDebating = false;
+        let shouldStop = false;
+        let debateHistory = [];
+
+        // ========== Utilities ==========
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime() {
+            return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function showError(message) {
+            const display = document.getElementById('error-display');
+            const msgEl = document.getElementById('error-message');
+            msgEl.textContent = message;
+            display.classList.remove('hidden');
+            display.classList.add('slide-in');
+        }
+
+        function hideError() {
+            document.getElementById('error-display').classList.add('hidden');
+        }
+
+        function updateStatus(icon, text) {
+            const status = document.getElementById('debate-status');
+            status.classList.remove('hidden');
+            document.getElementById('status-icon').textContent = icon;
+            document.getElementById('status-text').textContent = text;
+        }
+
+        function updateProgress(current, total) {
+            const container = document.getElementById('progress-container');
+            container.classList.remove('hidden');
+            const percent = Math.round((current / total) * 100);
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('progress-text').textContent = `${current}/${total}`;
+        }
+
+        function resetUI() {
+            hideError();
+            document.getElementById('debate-status').classList.add('hidden');
+            document.getElementById('progress-container').classList.add('hidden');
+            document.getElementById('debate-verdict').classList.add('hidden');
+            document.getElementById('debate-transcript').innerHTML = `
+                <div class="text-center text-gray-500 py-12">
+                    <svg class="w-16 h-16 mx-auto mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    <p>点击「开始辩论」后，双方发言将显示在这里</p>
+                </div>
+            `;
+            document.getElementById('debate-topic').value = '';
+            debateHistory = [];
+        }
+
+        // ========== API Key Management ==========
+        function getApiKey(modelId) {
+            const modelsJson = localStorage.getItem('polylogos_models');
+            if (!modelsJson) return null;
+            try {
+                const models = JSON.parse(modelsJson);
+                const model = models.find(m => m.id === modelId);
+                return model ? (model.apiKey || null) : null;
+            } catch (e) {
+                console.error('解析失败', e);
+                return null;
+            }
+        }
+
+        function getModelName(modelId) {
+            const config = API_CONFIGS[modelId];
+            if (config) return config.name;
+
+            try {
+                const modelsJson = localStorage.getItem('polylogos_models');
+                if (modelsJson) {
+                    const models = JSON.parse(modelsJson);
+                    const model = models.find(m => m.id === modelId);
+                    if (model) return model.name;
+                }
+            } catch (e) {}
+            return modelId;
+        }
+
+        function checkApiKeyStatus(modelId) {
+            const hasKey = !!getApiKey(modelId);
+            const proSelect = document.getElementById('debate-pro-model');
+            const statusEl = document.getElementById(modelId === proSelect?.value ? 'pro-key-status' : 'con-key-status');
+            const modelName = getModelName(modelId);
+
+            if (modelId && statusEl) {
+                statusEl.textContent = hasKey ? '✅ API Key 已配置' : `⚠️ 请在对比模式配置 ${modelName} 的 API Key`;
+                statusEl.className = 'text-xs mt-1 ' + (hasKey ? 'text-green-400' : 'text-yellow-400');
+            }
+        }
+
+        // ========== Model Initialization ==========
+        function initDebateSelectors() {
+            const proSelect = document.getElementById('debate-pro-model');
+            const conSelect = document.getElementById('debate-con-model');
+
+            const modelsJson = localStorage.getItem('polylogos_models');
+            if (!modelsJson) {
+                proSelect.innerHTML = '<option value="">无可用模型</option>';
+                conSelect.innerHTML = '<option value="">无可用模型</option>';
+                return;
+            }
+
+            try {
+                const allModels = JSON.parse(modelsJson);
+                const enabledModels = allModels.filter(m => m.enabled !== false);
+
+                if (enabledModels.length === 0) {
+                    proSelect.innerHTML = '<option value="">无可用模型</option>';
+                    conSelect.innerHTML = '<option value="">无可用模型</option>';
+                    return;
+                }
+
+                const options = enabledModels.map(m =>
+                    `<option value="${m.id}">${m.name}</option>`
+                ).join('');
+
+                proSelect.innerHTML = '<option value="">选择模型</option>' + options;
+                conSelect.innerHTML = '<option value="">选择模型</option>' + options;
+
+                const modelsWithKeys = enabledModels.filter(m => m.apiKey && m.apiKey.trim() !== '');
+                if (modelsWithKeys.length >= 2) {
+                    proSelect.value = modelsWithKeys[0].id;
+                    conSelect.value = modelsWithKeys[1].id;
+                } else if (enabledModels.length >= 2) {
+                    proSelect.value = enabledModels[0].id;
+                    conSelect.value = enabledModels[1].id;
+                }
+
+                if (proSelect.value) checkApiKeyStatus(proSelect.value);
+                if (conSelect.value) checkApiKeyStatus(conSelect.value);
+            } catch (e) {
+                console.error('解析失败', e);
+            }
+        }
+
+        // ========== Debate Message Functions ==========
+        function addDebateMessage(role, modelName, content, isThinking = false) {
+            const transcript = document.getElementById('debate-transcript');
+            const placeholder = transcript.querySelector('.text-center.text-gray-500');
+            if (placeholder) transcript.innerHTML = '';
+
+            const bubbleClass = role === 'pro' ? 'bubble-pro' : (role === 'con' ? 'bubble-con' : 'bg-gray-700');
+            const alignClass = role === 'pro' ? 'justify-end' : (role === 'con' ? 'justify-start' : 'justify-center');
+            const colorClass = role === 'pro' ? 'text-blue-300' : (role === 'con' ? 'text-red-300' : 'text-gray-400');
+            const roleLabel = role === 'pro' ? '正方' : (role === 'con' ? '反方' : '');
+            const time = formatTime();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${alignClass} slide-in`;
+
+            if (role === 'system') {
+                messageDiv.innerHTML = `
+                    <div class="bg-gray-700/50 px-4 py-2 rounded-full text-gray-400 text-sm flex items-center gap-2">
+                        <span>💬</span>
+                        <span>${escapeHtml(content)}</span>
+                    </div>
+                `;
+            } else {
+                const thinkingHtml = isThinking ? `
+                    <div class="flex items-center gap-1">
+                        <span>思考中</span>
+                        <span class="typing-dots flex gap-1 ml-1">
+                            <span class="w-2 h-2 bg-current rounded-full"></span>
+                            <span class="w-2 h-2 bg-current rounded-full"></span>
+                            <span class="w-2 h-2 bg-current rounded-full"></span>
+                        </span>
+                    </div>
+                ` : `<div class="whitespace-pre-wrap">${escapeHtml(content)}</div>`;
+
+                messageDiv.innerHTML = `
+                    <div class="inline-block ${bubbleClass} rounded-lg p-3 max-w-[80%] ${isThinking ? 'thinking' : ''}">
+                        <div class="text-xs ${colorClass} mb-1 flex items-center gap-2">
+                            ${roleLabel && !isThinking ? `<span class="font-semibold">${roleLabel}</span>` : ''}
+                            <span>${modelName}</span>
+                            <span class="opacity-60">${time}</span>
+                        </div>
+                        <div class="text-sm text-white">
+                            ${thinkingHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            transcript.appendChild(messageDiv);
+            transcript.scrollTop = transcript.scrollHeight;
+            return messageDiv;
+        }
+
+        function updateDebateMessage(messageDiv, role, modelName, content) {
+            const bubbleClass = role === 'pro' ? 'bubble-pro' : 'bubble-con';
+            const colorClass = role === 'pro' ? 'text-blue-300' : 'text-red-300';
+            const roleLabel = role === 'pro' ? '正方' : '反方';
+            const time = formatTime();
+
+            messageDiv.classList.remove('thinking');
+            messageDiv.innerHTML = `
+                <div class="inline-block ${bubbleClass} rounded-lg p-3 max-w-[80%]">
+                    <div class="text-xs ${colorClass} mb-1 flex items-center gap-2">
+                        <span class="font-semibold">${roleLabel}</span>
+                        <span>${modelName}</span>
+                        <span class="opacity-60">${time}</span>
+                    </div>
+                    <div class="text-sm text-white whitespace-pre-wrap">${escapeHtml(content)}</div>
+                </div>
+            `;
+            messageDiv.parentElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        // ========== API Call - 支持多种格式 ==========
+        async function callModelAPI(modelId, apiKey, prompt) {
+            const config = API_CONFIGS[modelId];
+            if (!config) throw new Error(`不支持的模型: ${modelId}`);
+            if (!apiKey) throw new Error(`缺少 ${config.name} 的 API Key，请在对比模式中配置`);
+
+            console.log(`[Debate] 调用 ${config.name}:`, prompt.substring(0, 100) + '...');
+
+            // OpenAI 兼容格式
+            if (config.format === 'openai') {
+                const response = await fetch(config.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: config.model,
+                        messages: [{ role: 'user', content: prompt }],
+                        stream: false
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API 调用失败 (${response.status}): ${errorText.substring(0, 100)}`);
+                }
+
+                const data = await response.json();
+                return data.choices[0].message.content;
+            }
+            
+            // Gemini 特殊格式
+            else if (config.format === 'gemini') {
+                const urlWithKey = `${config.url}?key=${apiKey}`;
+                const response = await fetch(urlWithKey, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Gemini API 调用失败 (${response.status}): ${errorText.substring(0, 100)}`);
+                }
+
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            }
+            
+            throw new Error(`不支持的 API 格式: ${config.format}`);
+        }
+
+        // ========== Debate Logic ==========
+        async function startDebate() {
+            if (isDebating) return;
+
+            const topic = document.getElementById('debate-topic').value.trim();
+            const proModelId = document.getElementById('debate-pro-model').value;
+            const conModelId = document.getElementById('debate-con-model').value;
+            const rounds = parseInt(document.getElementById('debate-rounds').value);
+
+            if (!topic) {
+                showError('请输入辩题');
+                return;
+            }
+            if (!proModelId || !conModelId) {
+                showError('请选择正方和反方模型');
+                return;
+            }
+            if (proModelId === conModelId) {
+                showError('正方和反方不能使用同一个模型');
+                return;
+            }
+
+            const proName = getModelName(proModelId);
+            const conName = getModelName(conModelId);
+            const proApiKey = getApiKey(proModelId);
+            const conApiKey = getApiKey(conModelId);
+
+            if (!proApiKey) {
+                showError(`缺少 ${proName} 的 API Key，请在对比模式中配置`);
+                return;
+            }
+            if (!conApiKey) {
+                showError(`缺少 ${conName} 的 API Key，请在对比模式中配置`);
+                return;
+            }
+
+            hideError();
+            isDebating = true;
+            shouldStop = false;
+            debateHistory = [];
+
+            const startBtn = document.getElementById('debate-start-btn');
+            const stopBtn = document.getElementById('debate-stop-btn');
+            startBtn.disabled = true;
+            startBtn.innerHTML = `<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>辩论进行中...`;
+            stopBtn.classList.remove('hidden');
+
+            document.getElementById('debate-transcript').innerHTML = '';
+            document.getElementById('debate-verdict').classList.add('hidden');
+
+            updateStatus('🎯', '辩论开始');
+            updateProgress(0, rounds * 2);
+            addDebateMessage('system', '系统', `辩题：${topic}`);
+
+            for (let round = 1; round <= rounds && !shouldStop; round++) {
+                updateProgress((round - 1) * 2 + 1, rounds * 2);
+                updateStatus('🤔', `${proName} 思考中...`);
+                const proMsgDiv = addDebateMessage('pro', proName, '', true);
+
+                try {
+                    const proPrompt = round === 1
+                        ? `你是一位专业、犀利的辩论选手，代表正方参与辩论。\n\n辩题：${topic}\n\n请阐述你支持这个观点的理由，给出有力的论据和例子。发言控制在200字以内，像真正的辩手一样发言，不要说"作为AI"之类的话。`
+                        : `你是一位专业、犀利的辩论选手，代表正方参与辩论。\n\n辩题：${topic}\n\n辩论历史：\n${debateHistory.map(h => `${h.role === 'pro' ? '正方' : '反方'} ${h.name}：${h.content}`).join('\n\n')}\n\n现在轮到正方发言。请针对反方的观点进行反驳，并继续强化你的立场。发言控制在200字以内，像真正的辩手一样发言。`;
+
+                    const proResponse = await callModelAPI(proModelId, proApiKey, proPrompt);
+                    debateHistory.push({ role: 'pro', name: proName, content: proResponse });
+                    updateDebateMessage(proMsgDiv, 'pro', proName, proResponse);
+                } catch (e) {
+                    updateDebateMessage(proMsgDiv, 'pro', proName, `❌ 错误: ${e.message}`);
+                    showError(`${proName} 发言失败: ${e.message}`);
+                    break;
+                }
+
+                if (shouldStop) break;
+
+                updateStatus('🤔', `${conName} 思考中...`);
+                updateProgress(round * 2 - 1, rounds * 2);
+                const conMsgDiv = addDebateMessage('con', conName, '', true);
+
+                try {
+                    const conPrompt = `你是一位专业、犀利的辩论选手，代表反方参与辩论。\n\n辩题：${topic}\n\n辩论历史：\n${debateHistory.map(h => `${h.role === 'pro' ? '正方' : '反方'} ${h.name}：${h.content}`).join('\n\n')}\n\n现在轮到反方发言。请针对正方的观点进行反驳，阐述你反对的理由。发言控制在200字以内，像真正的辩手一样发言，不要说"作为AI"之类的话。`;
+
+                    const conResponse = await callModelAPI(conModelId, conApiKey, conPrompt);
+                    debateHistory.push({ role: 'con', name: conName, content: conResponse });
+                    updateDebateMessage(conMsgDiv, 'con', conName, conResponse);
+                } catch (e) {
+                    updateDebateMessage(conMsgDiv, 'con', conName, `❌ 错误: ${e.message}`);
+                    showError(`${conName} 发言失败: ${e.message}`);
+                    break;
+                }
+            }
+
+            // 裁判总结
+            if (!shouldStop && debateHistory.length >= 2) {
+                updateStatus('⚖️', '裁判分析中...');
+                const verdictDiv = document.getElementById('debate-verdict');
+                const verdictContent = document.getElementById('verdict-content');
+                const verdictJudge = document.getElementById('verdict-judge');
+                verdictDiv.classList.remove('hidden');
+                verdictContent.innerHTML = '<div class="thinking text-gray-400">🏆 裁判正在分析中...</div>';
+
+                try {
+                    let judgeModelId = 'glm';
+                    let judgeApiKey = getApiKey('glm');
+                    if (!judgeApiKey) { judgeModelId = 'qwen'; judgeApiKey = getApiKey('qwen'); }
+                    if (!judgeApiKey) { judgeModelId = 'deepseek'; judgeApiKey = getApiKey('deepseek'); }
+                    if (!judgeApiKey) throw new Error('没有可用的裁判模型');
+
+                    const judgeName = getModelName(judgeModelId);
+                    const proContent = debateHistory.filter(h => h.role === 'pro').map(h => h.content).join('\n\n');
+                    const conContent = debateHistory.filter(h => h.role === 'con').map(h => h.content).join('\n\n');
+
+                    const verdictPrompt = `你是一位公正的辩论赛评委。请评判以下辩论：
+
+辩题：${topic}
+
+正方（${debateHistory.find(h => h.role === 'pro')?.name}）发言：
+${proContent}
+
+反方（${debateHistory.find(h => h.role === 'con')?.name}）发言：
+${conContent}
+
+请按以下JSON格式输出，不要添加其他内容：
+{
+  "pro_score": {"argument_depth": 1-10, "evidence_quality": 1-10, "logic_rigor": 1-10, "rebuttal_effectiveness": 1-10, "clarity": 1-10},
+  "con_score": {"argument_depth": 1-10, "evidence_quality": 1-10, "logic_rigor": 1-10, "rebuttal_effectiveness": 1-10, "clarity": 1-10},
+  "winner": "pro 或 con",
+  "winner_reasons": ["理由1", "理由2", "理由3"],
+  "summary": "一句话总结"
+}`;
+
+                    const verdictResponse = await callModelAPI(judgeModelId, judgeApiKey, verdictPrompt);
+                    let verdictData;
+                    try {
+                        const jsonMatch = verdictResponse.match(/```json\n([\s\S]*?)\n```/);
+                        verdictData = JSON.parse(jsonMatch ? jsonMatch[1] : verdictResponse);
+                    } catch (e) {
+                        verdictContent.innerHTML = marked.parse(verdictResponse);
+                        verdictJudge.textContent = `—— ${judgeName}`;
+                        updateStatus('✅', '辩论结束');
+                        return;
+                    }
+
+                    const proTotal = Object.values(verdictData.pro_score || {}).reduce((a, b) => a + b, 0);
+                    const conTotal = Object.values(verdictData.con_score || {}).reduce((a, b) => a + b, 0);
+                    const winnerText = verdictData.winner === 'pro' ? '🏆 正方获胜' : '🏆 反方获胜';
+                    const winnerColor = verdictData.winner === 'pro' ? 'text-blue-400' : 'text-red-400';
+
+                    verdictContent.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="bg-blue-900/30 rounded-lg p-3"><div class="text-blue-400 font-bold mb-2">🔵 正方</div>
+                            <div>论点深度: ${verdictData.pro_score?.argument_depth || '-'}/10</div>
+                            <div>论据质量: ${verdictData.pro_score?.evidence_quality || '-'}/10</div>
+                            <div>逻辑严密: ${verdictData.pro_score?.logic_rigor || '-'}/10</div>
+                            <div>反驳有效: ${verdictData.pro_score?.rebuttal_effectiveness || '-'}/10</div>
+                            <div>表达清晰: ${verdictData.pro_score?.clarity || '-'}/10</div>
+                            <div class="font-bold mt-2">总分: ${proTotal}/50</div></div>
+                            <div class="bg-red-900/30 rounded-lg p-3"><div class="text-red-400 font-bold mb-2">🔴 反方</div>
+                            <div>论点深度: ${verdictData.con_score?.argument_depth || '-'}/10</div>
+                            <div>论据质量: ${verdictData.con_score?.evidence_quality || '-'}/10</div>
+                            <div>逻辑严密: ${verdictData.con_score?.logic_rigor || '-'}/10</div>
+                            <div>反驳有效: ${verdictData.con_score?.rebuttal_effectiveness || '-'}/10</div>
+                            <div>表达清晰: ${verdictData.con_score?.clarity || '-'}/10</div>
+                            <div class="font-bold mt-2">总分: ${conTotal}/50</div></div>
+                        </div>
+                        <div class="text-center"><div class="text-2xl font-bold ${winnerColor}">${winnerText}</div>
+                        <div class="text-gray-300 mt-2">${(verdictData.winner_reasons || []).map(r => `• ${r}`).join('<br>')}</div>
+                        <div class="text-gray-400 italic mt-3">${verdictData.summary || ''}</div></div>`;
+                    verdictJudge.textContent = `—— ${judgeName}`;
+                    updateStatus('✅', '辩论结束');
+                } catch (e) {
+                    verdictContent.innerHTML = `<div class="text-red-400">裁判总结失败: ${e.message}</div>`;
+                    updateStatus('⚠️', '辩论结束');
+                }
+            }
+
+            isDebating = false;
+            startBtn.disabled = false;
+            startBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>开始辩论`;
+            stopBtn.classList.add('hidden');
+        }
+
+        function stopDebate() {
+            shouldStop = true;
+            isDebating = false;
+            addDebateMessage('system', '系统', '辩论已手动停止');
+            updateStatus('⏹️', '辩论已停止');
+            const startBtn = document.getElementById('debate-start-btn');
+            const stopBtn = document.getElementById('debate-stop-btn');
+            startBtn.disabled = false;
+            startBtn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>开始辩论`;
+            stopBtn.classList.add('hidden');
+        }
+
+        // ========== Event Listeners ==========
+        document.getElementById('debate-start-btn').addEventListener('click', startDebate);
+        document.getElementById('debate-stop-btn').addEventListener('click', stopDebate);
+        document.getElementById('debate-reset-btn').addEventListener('click', resetUI);
+        document.getElementById('debate-pro-model').addEventListener('change', function() { if (this.value) checkApiKeyStatus(this.value); });
+        document.getElementById('debate-con-model').addEventListener('change', function() { if (this.value) checkApiKeyStatus(this.value); });
+
+        initDebateSelectors();
+    </script>
+</body>
+</html>
